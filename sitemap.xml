@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://xrsrke.github.io/computational-linear-algebra/index.html</loc>
+    <lastmod>2022-08-24T23:44:29.107Z</lastmod>
+  </url>
+  <url>
+    <loc>https://xrsrke.github.io/computational-linear-algebra/01_matrix_math_accuracy_memory_speed_parallelization.html</loc>
+    <lastmod>2022-08-24T23:44:29.807Z</lastmod>
+  </url>
+  <url>
+    <loc>https://xrsrke.github.io/computational-linear-algebra/fastai_nbs/5. Health Outcomes with Linear Regression.html</loc>
+    <lastmod>2022-08-24T23:44:30.419Z</lastmod>
+  </url>
+  <url>
+    <loc>https://xrsrke.github.io/computational-linear-algebra/fastai_nbs/6. How to Implement Linear Regression.html</loc>
+    <lastmod>2022-08-24T23:44:31.123Z</lastmod>
+  </url>
+  <url>
+    <loc>https://xrsrke.github.io/computational-linear-algebra/fastai_nbs/4. Compressed Sensing of CT Scans with Robust Regression.html</loc>
+    <lastmod>2022-08-24T23:44:31.847Z</lastmod>
+  </url>
+  <url>
+    <loc>https://xrsrke.github.io/computational-linear-algebra/fastai_nbs/gradient-descent-intro.html</loc>
+    <lastmod>2022-08-24T23:44:32.223Z</lastmod>
+  </url>
+  <url>
+    <loc>https://xrsrke.github.io/computational-linear-algebra/fastai_nbs/2. Topic Modeling with NMF and SVD.html</loc>
+    <lastmod>2022-08-24T23:44:33.059Z</lastmod>
+  </url>
+  <url>
+    <loc>https://xrsrke.github.io/computational-linear-algebra/fastai_nbs/1. Why are we here.html</loc>
+    <lastmod>2022-08-24T23:44:33.684Z</lastmod>
+  </url>
+  <url>
+    <loc>https://xrsrke.github.io/computational-linear-algebra/fastai_nbs/Homework 1.html</loc>
+    <lastmod>2022-08-24T23:44:34.004Z</lastmod>
+  </url>
+  <url>
+    <loc>https://xrsrke.github.io/computational-linear-algebra/fastai_nbs/Homework 3.html</loc>
+    <lastmod>2022-08-24T23:44:34.364Z</lastmod>
+  </url>
+  <url>
+    <loc>https://xrsrke.github.io/computational-linear-algebra/fastai_nbs/7. PageRank with Eigen Decompositions.html</loc>
+    <lastmod>2022-08-24T23:44:35.348Z</lastmod>
+  </url>
+  <url>
+    <loc>https://xrsrke.github.io/computational-linear-algebra/fastai_nbs/8. Implementing QR Factorization.html</loc>
+    <lastmod>2022-08-24T23:44:35.884Z</lastmod>
+  </url>
+  <url>
+    <loc>https://xrsrke.github.io/computational-linear-algebra/fastai_nbs/Homework 2.html</loc>
+    <lastmod>2022-08-24T23:44:36.200Z</lastmod>
+  </url>
+  <url>
+    <loc>https://xrsrke.github.io/computational-linear-algebra/fastai_nbs/convolution-intro.html</loc>
+    <lastmod>2022-08-24T23:44:36.636Z</lastmod>
+  </url>
+  <url>
+    <loc>https://xrsrke.github.io/computational-linear-algebra/fastai_nbs/0. Course Logistics.html</loc>
+    <lastmod>2022-08-24T23:44:37.100Z</lastmod>
+  </url>
+  <url>
+    <loc>https://xrsrke.github.io/computational-linear-algebra/fastai_nbs/3. Background Removal with Robust PCA.html</loc>
+    <lastmod>2022-08-24T23:44:38.368Z</lastmod>
+  </url>
+  <url>
+    <loc>https://xrsrke.github.io/computational-linear-algebra/core.html</loc>
+    <lastmod>2022-08-24T23:44:38.672Z</lastmod>
+  </url>
+</urlset>

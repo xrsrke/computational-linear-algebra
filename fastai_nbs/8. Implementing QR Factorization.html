@@ -1,0 +1,904 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.1.75">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>computational-linear-algebra - 8. Implementing QR Factorization</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: 1;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1.6em;
+  vertical-align: middle;
+}
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+    color: #aaaaaa;
+  }
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+code span.at { color: #7d9029; } /* Attribute */
+code span.bn { color: #40a070; } /* BaseN */
+code span.bu { color: #008000; } /* BuiltIn */
+code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+code span.ch { color: #4070a0; } /* Char */
+code span.cn { color: #880000; } /* Constant */
+code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+code span.dt { color: #902000; } /* DataType */
+code span.dv { color: #40a070; } /* DecVal */
+code span.er { color: #ff0000; font-weight: bold; } /* Error */
+code span.ex { } /* Extension */
+code span.fl { color: #40a070; } /* Float */
+code span.fu { color: #06287e; } /* Function */
+code span.im { color: #008000; font-weight: bold; } /* Import */
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+code span.op { color: #666666; } /* Operator */
+code span.ot { color: #007020; } /* Other */
+code span.pp { color: #bc7a00; } /* Preprocessor */
+code span.sc { color: #4070a0; } /* SpecialChar */
+code span.ss { color: #bb6688; } /* SpecialString */
+code span.st { color: #4070a0; } /* String */
+code span.va { color: #19177c; } /* Variable */
+code span.vs { color: #4070a0; } /* VerbatimString */
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+</style>
+
+
+<script src="../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../">
+<script src="../site_libs/quarto-html/quarto.js"></script>
+<script src="../site_libs/quarto-html/popper.min.js"></script>
+<script src="../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../site_libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 20,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit"
+  }
+}</script>
+
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+
+<link rel="stylesheet" href="../styles.css">
+<meta property="og:title" content="computational-linear-algebra - 8. Implementing QR Factorization">
+<meta property="og:description" content="You can read an overview of this Numerical Linear Algebra course in this blog post. The course was originally taught in the University of San Francisco MS in Analytics graduate program.">
+<meta property="og:site-name" content="computational-linear-algebra">
+<meta name="twitter:title" content="computational-linear-algebra - 8. Implementing QR Factorization">
+<meta name="twitter:description" content="You can read an overview of this Numerical Linear Algebra course in this blog post. The course was originally taught in the University of San Francisco MS in Analytics graduate program.">
+<meta name="twitter:card" content="summary">
+</head>
+
+<body class="nav-sidebar floating nav-fixed">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+    <nav class="navbar navbar-expand-lg navbar-dark ">
+      <div class="navbar-container container-fluid">
+      <a class="navbar-brand" href="../index.html">
+    <span class="navbar-title">computational-linear-algebra</span>
+  </a>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+  <span class="navbar-toggler-icon"></span>
+</button>
+          <div class="collapse navbar-collapse" id="navbarCollapse">
+            <ul class="navbar-nav navbar-nav-scroll ms-auto">
+  <li class="nav-item compact">
+    <a class="nav-link" href="https://github.com/xrsrke/computational-linear-algebra"><i class="bi bi-github" role="img">
+</i> 
+ </a>
+  </li>  
+</ul>
+              <div class="quarto-toggle-container">
+                  <a href="" class="quarto-reader-toggle nav-link" onclick="window.quartoToggleReader(); return false;" title="Toggle reader mode">
+  <div class="quarto-reader-toggle-btn">
+  <i class="bi"></i>
+  </div>
+</a>
+              </div>
+              <div id="quarto-search" class="" title="Search"></div>
+          </div> <!-- /navcollapse -->
+      </div> <!-- /container-fluid -->
+    </nav>
+  <nav class="quarto-secondary-nav" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+    <div class="container-fluid d-flex justify-content-between">
+      <h1 class="quarto-secondary-nav-title">8. Implementing QR Factorization</h1>
+      <button type="button" class="quarto-btn-toggle btn" aria-label="Show secondary navigation">
+        <i class="bi bi-chevron-right"></i>
+      </button>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse sidebar-navigation floating overflow-auto">
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../index.html" class="sidebar-item-text sidebar-link">computational-linear-algebra</a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../core.html" class="sidebar-item-text sidebar-link">core</a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../01_matrix_math_accuracy_memory_speed_parallelization.html" class="sidebar-item-text sidebar-link">1. Matrix Math, Accuracy, Memory, Speed, &amp; Parallelization</a>
+  </div>
+</li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" aria-expanded="true">fastai_nbs</a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" aria-expanded="true">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../fastai_nbs/0. Course Logistics.html" class="sidebar-item-text sidebar-link">0. Course Logistics</a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../fastai_nbs/1. Why are we here.html" class="sidebar-item-text sidebar-link">1. Why are we here?</a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../fastai_nbs/2. Topic Modeling with NMF and SVD.html" class="sidebar-item-text sidebar-link">2. Topic Modeling with NMF and SVD</a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../fastai_nbs/3. Background Removal with Robust PCA.html" class="sidebar-item-text sidebar-link">3. Background Removal with Robust PCA</a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../fastai_nbs/4. Compressed Sensing of CT Scans with Robust Regression.html" class="sidebar-item-text sidebar-link">4. Compressed Sensing of CT Scans with Robust Regression</a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../fastai_nbs/5. Health Outcomes with Linear Regression.html" class="sidebar-item-text sidebar-link">5. Health Outcomes with Linear Regression</a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../fastai_nbs/6. How to Implement Linear Regression.html" class="sidebar-item-text sidebar-link">6. How to Implement Linear Regression</a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../fastai_nbs/7. PageRank with Eigen Decompositions.html" class="sidebar-item-text sidebar-link">7. PageRank with Eigen Decompositions</a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../fastai_nbs/8. Implementing QR Factorization.html" class="sidebar-item-text sidebar-link active">8. Implementing QR Factorization</a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../fastai_nbs/Homework 1.html" class="sidebar-item-text sidebar-link">Homework 1</a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../fastai_nbs/Homework 2.html" class="sidebar-item-text sidebar-link">Homework 2</a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../fastai_nbs/Homework 3.html" class="sidebar-item-text sidebar-link">Homework 3</a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../fastai_nbs/convolution-intro.html" class="sidebar-item-text sidebar-link">Intro to Convolutions</a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../fastai_nbs/gradient-descent-intro.html" class="sidebar-item-text sidebar-link">Gradient Descent Intro</a>
+  </div>
+</li>
+      </ul>
+  </li>
+    </ul>
+    </div>
+</nav>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#in-numpy" id="toc-in-numpy" class="nav-link active" data-scroll-target="#in-numpy">In Numpy</a></li>
+  <li><a href="#gram-schmidt" id="toc-gram-schmidt" class="nav-link" data-scroll-target="#gram-schmidt">Gram-Schmidt</a>
+  <ul>
+  <li><a href="#classical-gram-schmidt-unstable" id="toc-classical-gram-schmidt-unstable" class="nav-link" data-scroll-target="#classical-gram-schmidt-unstable">Classical Gram-Schmidt (unstable)</a></li>
+  <li><a href="#modified-gram-schmidt" id="toc-modified-gram-schmidt" class="nav-link" data-scroll-target="#modified-gram-schmidt">Modified Gram-Schmidt</a></li>
+  </ul></li>
+  <li><a href="#householder" id="toc-householder" class="nav-link" data-scroll-target="#householder">Householder</a>
+  <ul>
+  <li><a href="#intro" id="toc-intro" class="nav-link" data-scroll-target="#intro">Intro</a></li>
+  <li><a href="#initialization" id="toc-initialization" class="nav-link" data-scroll-target="#initialization">Initialization</a></li>
+  <li><a href="#algorithm" id="toc-algorithm" class="nav-link" data-scroll-target="#algorithm">Algorithm</a></li>
+  <li><a href="#gotchas" id="toc-gotchas" class="nav-link" data-scroll-target="#gotchas">Gotchas</a></li>
+  </ul></li>
+  <li><a href="#analogy" id="toc-analogy" class="nav-link" data-scroll-target="#analogy">Analogy</a></li>
+  <li><a href="#examples" id="toc-examples" class="nav-link" data-scroll-target="#examples">Examples</a>
+  <ul>
+  <li><a href="#ex-classical-vs-modified-gram-schmidt" id="toc-ex-classical-vs-modified-gram-schmidt" class="nav-link" data-scroll-target="#ex-classical-vs-modified-gram-schmidt">Ex: Classical vs Modified Gram-Schmidt</a></li>
+  <li><a href="#ex-9.3-numerical-loss-of-orthogonality" id="toc-ex-9.3-numerical-loss-of-orthogonality" class="nav-link" data-scroll-target="#ex-9.3-numerical-loss-of-orthogonality">Ex 9.3: Numerical loss of orthogonality</a></li>
+  </ul></li>
+  <li><a href="#end" id="toc-end" class="nav-link" data-scroll-target="#end">End</a></li>
+  </ul>
+<div class="toc-actions"><div><i class="bi bi-github"></i></div><div class="action-links"><p><a href="https://github.com/xrsrke/computational-linear-algebra/issues/new" class="toc-action">Report an issue</a></p></div></div></nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title d-none d-lg-block">8. Implementing QR Factorization</h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+    
+  </div>
+  
+
+</header>
+
+<!-- WARNING: THIS FILE WAS AUTOGENERATED! DO NOT EDIT! -->
+<p>You can read an overview of this Numerical Linear Algebra course in <a href="http://www.fast.ai/2017/07/17/num-lin-alg/">this blog post</a>. The course was originally taught in the <a href="https://www.usfca.edu/arts-sciences/graduate-programs/analytics">University of San Francisco MS in Analytics</a> graduate program. Course lecture videos are <a href="https://www.youtube.com/playlist?list=PLtmWHNX-gukIc92m1K0P6bIOnZb-mg0hY">available on YouTube</a> (note that the notebook numbers and video numbers do not line up, since some notebooks took longer than 1 video to cover).</p>
+<p>You can ask questions about the course on <a href="http://forums.fast.ai/c/lin-alg">our fast.ai forums</a>.</p>
+<p>We used QR factorization in computing eigenvalues and to compute least squares regression. It is an important building block in numerical linear algebra.</p>
+<p>“One algorithm in numerical linear algebra is more important than all the others: QR factorization.” –Trefethen, page 48</p>
+<p>Recall that for any matrix <span class="math inline">\(A\)</span>, <span class="math inline">\(A = QR\)</span> where <span class="math inline">\(Q\)</span> is orthogonal and <span class="math inline">\(R\)</span> is upper-triangular.</p>
+<p><strong>Reminder</strong>: The <em>QR algorithm</em>, which we looked at in the last lesson, uses the <em>QR decomposition</em>, but don’t confuse the two.</p>
+<section id="in-numpy" class="level3">
+<h3 class="anchored" data-anchor-id="in-numpy">In Numpy</h3>
+<div class="cell" data-execution_count="5">
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>np.set_printoptions(suppress<span class="op">=</span><span class="va">True</span>, precision<span class="op">=</span><span class="dv">4</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell" data-execution_count="6">
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>n <span class="op">=</span> <span class="dv">5</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>A <span class="op">=</span> np.random.rand(n,n)</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>npQ, npR <span class="op">=</span> np.linalg.qr(A)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Check that Q is orthogonal:</p>
+<div class="cell" data-execution_count="7">
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>np.allclose(np.eye(n), npQ <span class="op">@</span> npQ.T), np.allclose(np.eye(n), npQ.T <span class="op">@</span> npQ)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="7">
+<pre><code>(True, True)</code></pre>
+</div>
+</div>
+<p>Check that R is triangular</p>
+<div class="cell" data-execution_count="8">
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>npR</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="8">
+<pre><code>array([[-0.8524, -0.7872, -1.1163, -1.2248, -0.7587],
+       [ 0.    , -0.9363, -0.2958, -0.7666, -0.632 ],
+       [ 0.    ,  0.    ,  0.4645, -0.1744, -0.3542],
+       [ 0.    ,  0.    ,  0.    ,  0.4328, -0.2567],
+       [ 0.    ,  0.    ,  0.    ,  0.    ,  0.1111]])</code></pre>
+</div>
+</div>
+</section>
+<section id="gram-schmidt" class="level2">
+<h2 class="anchored" data-anchor-id="gram-schmidt">Gram-Schmidt</h2>
+<section id="classical-gram-schmidt-unstable" class="level3">
+<h3 class="anchored" data-anchor-id="classical-gram-schmidt-unstable">Classical Gram-Schmidt (unstable)</h3>
+<p>For each <span class="math inline">\(j\)</span>, calculate a single projection <span class="math display">\[v_j = P_ja_j\]</span> where <span class="math inline">\(P_j\)</span> projects onto the space orthogonal to the span of <span class="math inline">\(q_1,\ldots,q_{j-1}\)</span>.</p>
+<div class="cell" data-execution_count="10">
+<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> cgs(A):</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>    m, n <span class="op">=</span> A.shape</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>    Q <span class="op">=</span> np.zeros([m,n], dtype<span class="op">=</span>np.float64)</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>    R <span class="op">=</span> np.zeros([n,n], dtype<span class="op">=</span>np.float64)</span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> j <span class="kw">in</span> <span class="bu">range</span>(n):</span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>        v <span class="op">=</span> A[:,j]</span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(j):</span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>            R[i,j] <span class="op">=</span> np.dot(Q[:,i], A[:,j])</span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a>            v <span class="op">=</span> v <span class="op">-</span> (R[i,j] <span class="op">*</span> Q[:,i])</span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a>        R[j,j] <span class="op">=</span> np.linalg.norm(v)</span>
+<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a>        Q[:, j] <span class="op">=</span> v <span class="op">/</span> R[j,j]</span>
+<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> Q, R</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell" data-execution_count="11">
+<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>Q, R <span class="op">=</span> cgs(A)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell" data-execution_count="12">
+<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>np.allclose(A, Q <span class="op">@</span> R)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="12">
+<pre><code>True</code></pre>
+</div>
+</div>
+<p>Check if Q is unitary:</p>
+<div class="cell" data-execution_count="109">
+<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>np.allclose(np.eye(<span class="bu">len</span>(Q)), Q.dot(Q.T))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="109">
+<pre><code>True</code></pre>
+</div>
+</div>
+<div class="cell" data-execution_count="115">
+<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>np.allclose(npQ, <span class="op">-</span>Q)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="115">
+<pre><code>True</code></pre>
+</div>
+</div>
+<p>Gram-Schmidt should remind you a bit of the Arnoldi Iteration (used to transform a matrix to Hessenberg form) since it is also a structured orthogonalization.</p>
+</section>
+<section id="modified-gram-schmidt" class="level3">
+<h3 class="anchored" data-anchor-id="modified-gram-schmidt">Modified Gram-Schmidt</h3>
+<p>Classical (unstable) Gram-Schmidt: for each <span class="math inline">\(j\)</span>, calculate a single projection <span class="math display">\[v_j = P_ja_j\]</span> where <span class="math inline">\(P_j\)</span> projects onto the space orthogonal to the span of <span class="math inline">\(q_1,\ldots,q_{j-1}\)</span>.</p>
+<p>Modified Gram-Schmidt: for each <span class="math inline">\(j\)</span>, calculate <span class="math inline">\(j-1\)</span> projections <span class="math display">\[P_j = P_{\perp q_{j-1}\cdots\perp q_{2}\perp q_{1}}\]</span></p>
+<div class="cell" data-execution_count="30">
+<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>n <span class="op">=</span> <span class="dv">3</span></span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>A <span class="op">=</span> np.random.rand(n,n).astype(np.float64)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell" data-execution_count="33">
+<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> mgs(A):</span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>    V <span class="op">=</span> A.copy()</span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>    m, n <span class="op">=</span> A.shape</span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>    Q <span class="op">=</span> np.zeros([m,n], dtype<span class="op">=</span>np.float64)</span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>    R <span class="op">=</span> np.zeros([n,n], dtype<span class="op">=</span>np.float64)</span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(n):</span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a>        R[i,i] <span class="op">=</span> np.linalg.norm(V[:,i])</span>
+<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a>        Q[:,i] <span class="op">=</span> V[:,i] <span class="op">/</span> R[i,i]</span>
+<span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> j <span class="kw">in</span> <span class="bu">range</span>(i, n):</span>
+<span id="cb16-10"><a href="#cb16-10" aria-hidden="true" tabindex="-1"></a>            R[i,j] <span class="op">=</span> np.dot(Q[:,i],V[:,j])</span>
+<span id="cb16-11"><a href="#cb16-11" aria-hidden="true" tabindex="-1"></a>            V[:,j] <span class="op">=</span> V[:,j] <span class="op">-</span> R[i,j]<span class="op">*</span>Q[:,i]</span>
+<span id="cb16-12"><a href="#cb16-12" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> Q, R</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell" data-execution_count="34">
+<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>Q, R <span class="op">=</span> mgs(A)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell" data-execution_count="35">
+<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>np.allclose(np.eye(<span class="bu">len</span>(Q)), Q.dot(Q.T.conj()))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="35">
+<pre><code>True</code></pre>
+</div>
+</div>
+<div class="cell" data-execution_count="36">
+<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>np.allclose(A, np.matmul(Q,R))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="36">
+<pre><code>True</code></pre>
+</div>
+</div>
+</section>
+</section>
+<section id="householder" class="level2">
+<h2 class="anchored" data-anchor-id="householder">Householder</h2>
+<section id="intro" class="level3">
+<h3 class="anchored" data-anchor-id="intro">Intro</h3>
+<span class="math display">\[\begin{array}{ l | l | c }
+\hline
+Gram-Schmidt &amp; Triangular\, Orthogonalization &amp; A R_1 R_2 \cdots R_n = Q  \\
+Householder  &amp; Orthogonal\, Triangularization &amp; Q_n \cdots Q_2 Q_1 A = R  \\
+\hline
+\end{array}\]</span>
+<p>Householder reflections lead to a more nearly orthogonal matrix Q with rounding errors</p>
+<p>Gram-Schmidt can be stopped part-way, leaving a reduced QR of 1st n columns of A</p>
+</section>
+<section id="initialization" class="level3">
+<h3 class="anchored" data-anchor-id="initialization">Initialization</h3>
+<div class="cell" data-execution_count="113">
+<div class="sourceCode cell-code" id="cb22"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>n <span class="op">=</span> <span class="dv">4</span></span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>A <span class="op">=</span> np.random.rand(n,n).astype(np.float64)</span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a>Q <span class="op">=</span> np.zeros([n,n], dtype<span class="op">=</span>np.float64)</span>
+<span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a>R <span class="op">=</span> np.zeros([n,n], dtype<span class="op">=</span>np.float64)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell" data-execution_count="114">
+<div class="sourceCode cell-code" id="cb23"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a>A</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="114">
+<pre><code>array([[ 0.5435,  0.6379,  0.4011,  0.5773],
+       [ 0.0054,  0.8049,  0.6804,  0.0821],
+       [ 0.2832,  0.2416,  0.8656,  0.8099],
+       [ 0.1139,  0.9621,  0.7623,  0.5648]])</code></pre>
+</div>
+</div>
+<div class="cell" data-execution_count="115">
+<div class="sourceCode cell-code" id="cb25"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> scipy.linalg <span class="im">import</span> block_diag</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell" data-execution_count="116">
+<div class="sourceCode cell-code" id="cb26"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a>np.set_printoptions(<span class="dv">5</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="algorithm" class="level3">
+<h3 class="anchored" data-anchor-id="algorithm">Algorithm</h3>
+<p>I added more computations and more info than needed, since it’s illustrative of how the algorithm works. This version returns the <em>Householder Reflectors</em> as well.</p>
+<div class="cell" data-execution_count="117">
+<div class="sourceCode cell-code" id="cb27"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> householder_lots(A):</span>
+<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a>    m, n <span class="op">=</span> A.shape</span>
+<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a>    R <span class="op">=</span> np.copy(A)</span>
+<span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a>    V <span class="op">=</span> []</span>
+<span id="cb27-5"><a href="#cb27-5" aria-hidden="true" tabindex="-1"></a>    Fs <span class="op">=</span> []</span>
+<span id="cb27-6"><a href="#cb27-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> k <span class="kw">in</span> <span class="bu">range</span>(n):</span>
+<span id="cb27-7"><a href="#cb27-7" aria-hidden="true" tabindex="-1"></a>        v <span class="op">=</span> np.copy(R[k:,k])</span>
+<span id="cb27-8"><a href="#cb27-8" aria-hidden="true" tabindex="-1"></a>        v <span class="op">=</span> np.reshape(v, (n<span class="op">-</span>k, <span class="dv">1</span>))</span>
+<span id="cb27-9"><a href="#cb27-9" aria-hidden="true" tabindex="-1"></a>        v[<span class="dv">0</span>] <span class="op">+=</span> np.sign(v[<span class="dv">0</span>]) <span class="op">*</span> np.linalg.norm(v)</span>
+<span id="cb27-10"><a href="#cb27-10" aria-hidden="true" tabindex="-1"></a>        v <span class="op">/=</span> np.linalg.norm(v)</span>
+<span id="cb27-11"><a href="#cb27-11" aria-hidden="true" tabindex="-1"></a>        R[k:,k:] <span class="op">=</span> R[k:,k:] <span class="op">-</span> <span class="dv">2</span><span class="op">*</span>np.matmul(v, np.matmul(v.T, R[k:,k:]))</span>
+<span id="cb27-12"><a href="#cb27-12" aria-hidden="true" tabindex="-1"></a>        V.append(v)</span>
+<span id="cb27-13"><a href="#cb27-13" aria-hidden="true" tabindex="-1"></a>        F <span class="op">=</span> np.eye(n<span class="op">-</span>k) <span class="op">-</span> <span class="dv">2</span> <span class="op">*</span> np.matmul(v, v.T)<span class="op">/</span>np.matmul(v.T, v)</span>
+<span id="cb27-14"><a href="#cb27-14" aria-hidden="true" tabindex="-1"></a>        Fs.append(F)</span>
+<span id="cb27-15"><a href="#cb27-15" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> R, V, Fs</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Check that R is upper triangular:</p>
+<div class="cell" data-execution_count="121">
+<div class="sourceCode cell-code" id="cb28"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a>R</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="121">
+<pre><code>array([[-0.62337, -0.84873, -0.88817, -0.97516],
+       [ 0.     , -1.14818, -0.86417, -0.30109],
+       [ 0.     ,  0.     , -0.64691, -0.45234],
+       [-0.     ,  0.     ,  0.     , -0.26191]])</code></pre>
+</div>
+</div>
+<p>As a check, we will calculate <span class="math inline">\(Q^T\)</span> and <span class="math inline">\(R\)</span> using the block matrices <span class="math inline">\(F\)</span>. The matrices <span class="math inline">\(F\)</span> are <em>the householder reflectors</em>.</p>
+<p>Note that this is not a computationally efficient way of working with <span class="math inline">\(Q\)</span>. In most cases, you do not actually need <span class="math inline">\(Q\)</span>. For instance, if you are using QR to solve least squares, you just need <span class="math inline">\(Q^*b\)</span>.</p>
+<ul>
+<li>See page 74 of Trefethen for techniques to implicitly calculate the product <span class="math inline">\(Q^*b\)</span> or <span class="math inline">\(Qx\)</span>.</li>
+<li>See <a href="http://www.cs.cornell.edu/~bindel/class/cs6210-f09/lec18.pdf">these lecture notes</a> for a different implementation of Householder that calculates Q simultaneously as part of R.</li>
+</ul>
+<div class="cell" data-execution_count="175">
+<div class="sourceCode cell-code" id="cb30"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a>QT <span class="op">=</span> np.matmul(block_diag(np.eye(<span class="dv">3</span>), F[<span class="dv">3</span>]), </span>
+<span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a>               np.matmul(block_diag(np.eye(<span class="dv">2</span>), F[<span class="dv">2</span>]), </span>
+<span id="cb30-3"><a href="#cb30-3" aria-hidden="true" tabindex="-1"></a>                         np.matmul(block_diag(np.eye(<span class="dv">1</span>), F[<span class="dv">1</span>]), F[<span class="dv">0</span>])))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell" data-execution_count="178">
+<div class="sourceCode cell-code" id="cb31"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a>F[<span class="dv">1</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="178">
+<pre><code>array([[-0.69502,  0.10379, -0.71146],
+       [ 0.10379,  0.99364,  0.04356],
+       [-0.71146,  0.04356,  0.70138]])</code></pre>
+</div>
+</div>
+<div class="cell" data-execution_count="177">
+<div class="sourceCode cell-code" id="cb33"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a>block_diag(np.eye(<span class="dv">1</span>), F[<span class="dv">1</span>])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="177">
+<pre><code>array([[ 1.     ,  0.     ,  0.     ,  0.     ],
+       [ 0.     , -0.69502,  0.10379, -0.71146],
+       [ 0.     ,  0.10379,  0.99364,  0.04356],
+       [ 0.     , -0.71146,  0.04356,  0.70138]])</code></pre>
+</div>
+</div>
+<div class="cell" data-execution_count="176">
+<div class="sourceCode cell-code" id="cb35"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a>np.matmul(block_diag(np.eye(<span class="dv">1</span>), F[<span class="dv">1</span>]), F[<span class="dv">0</span>])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="176">
+<pre><code>array([[-0.87185, -0.00861, -0.45431, -0.18279],
+       [ 0.08888, -0.69462,  0.12536, -0.70278],
+       [-0.46028,  0.10167,  0.88193, -0.00138],
+       [-0.14187, -0.71211,  0.00913,  0.68753]])</code></pre>
+</div>
+</div>
+<div class="cell" data-execution_count="123">
+<div class="sourceCode cell-code" id="cb37"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a>QT</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="123">
+<pre><code>array([[-0.87185, -0.00861, -0.45431, -0.18279],
+       [ 0.08888, -0.69462,  0.12536, -0.70278],
+       [ 0.45817, -0.112  , -0.88171,  0.01136],
+       [ 0.14854,  0.71056, -0.02193, -0.68743]])</code></pre>
+</div>
+</div>
+<div class="cell" data-execution_count="124">
+<div class="sourceCode cell-code" id="cb39"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a>R2 <span class="op">=</span> np.matmul(block_diag(np.eye(<span class="dv">3</span>), F[<span class="dv">3</span>]), </span>
+<span id="cb39-2"><a href="#cb39-2" aria-hidden="true" tabindex="-1"></a>               np.matmul(block_diag(np.eye(<span class="dv">2</span>), F[<span class="dv">2</span>]),</span>
+<span id="cb39-3"><a href="#cb39-3" aria-hidden="true" tabindex="-1"></a>                         np.matmul(block_diag(np.eye(<span class="dv">1</span>), F[<span class="dv">1</span>]), </span>
+<span id="cb39-4"><a href="#cb39-4" aria-hidden="true" tabindex="-1"></a>                                   np.matmul(F[<span class="dv">0</span>], A))))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell" data-execution_count="125">
+<div class="sourceCode cell-code" id="cb40"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a>np.allclose(A, np.matmul(np.transpose(QT), R2))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="125">
+<pre><code>True</code></pre>
+</div>
+</div>
+<div class="cell" data-execution_count="126">
+<div class="sourceCode cell-code" id="cb42"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a>np.allclose(R, R2)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="126">
+<pre><code>True</code></pre>
+</div>
+</div>
+<p>Here’s a concise version of Householder (although I do create a new R, instead of overwriting A and computing it in place).</p>
+<div class="cell" data-execution_count="179">
+<div class="sourceCode cell-code" id="cb44"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb44-1"><a href="#cb44-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> householder(A):</span>
+<span id="cb44-2"><a href="#cb44-2" aria-hidden="true" tabindex="-1"></a>    m, n <span class="op">=</span> A.shape</span>
+<span id="cb44-3"><a href="#cb44-3" aria-hidden="true" tabindex="-1"></a>    R <span class="op">=</span> np.copy(A)</span>
+<span id="cb44-4"><a href="#cb44-4" aria-hidden="true" tabindex="-1"></a>    Q <span class="op">=</span> np.eye(m)</span>
+<span id="cb44-5"><a href="#cb44-5" aria-hidden="true" tabindex="-1"></a>    V <span class="op">=</span> []</span>
+<span id="cb44-6"><a href="#cb44-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> k <span class="kw">in</span> <span class="bu">range</span>(n):</span>
+<span id="cb44-7"><a href="#cb44-7" aria-hidden="true" tabindex="-1"></a>        v <span class="op">=</span> np.copy(R[k:,k])</span>
+<span id="cb44-8"><a href="#cb44-8" aria-hidden="true" tabindex="-1"></a>        v <span class="op">=</span> np.reshape(v, (n<span class="op">-</span>k, <span class="dv">1</span>))</span>
+<span id="cb44-9"><a href="#cb44-9" aria-hidden="true" tabindex="-1"></a>        v[<span class="dv">0</span>] <span class="op">+=</span> np.sign(v[<span class="dv">0</span>]) <span class="op">*</span> np.linalg.norm(v)</span>
+<span id="cb44-10"><a href="#cb44-10" aria-hidden="true" tabindex="-1"></a>        v <span class="op">/=</span> np.linalg.norm(v)</span>
+<span id="cb44-11"><a href="#cb44-11" aria-hidden="true" tabindex="-1"></a>        R[k:,k:] <span class="op">=</span> R[k:,k:] <span class="op">-</span> <span class="dv">2</span> <span class="op">*</span> v <span class="op">@</span> v.T <span class="op">@</span> R[k:,k:]</span>
+<span id="cb44-12"><a href="#cb44-12" aria-hidden="true" tabindex="-1"></a>        V.append(v)</span>
+<span id="cb44-13"><a href="#cb44-13" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> R, V</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell" data-execution_count="157">
+<div class="sourceCode cell-code" id="cb45"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb45-1"><a href="#cb45-1" aria-hidden="true" tabindex="-1"></a>RH, VH <span class="op">=</span> householder(A)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Check that R is diagonal:</p>
+<div class="cell" data-execution_count="129">
+<div class="sourceCode cell-code" id="cb46"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb46-1"><a href="#cb46-1" aria-hidden="true" tabindex="-1"></a>RH</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="129">
+<pre><code>array([[-0.62337, -0.84873, -0.88817, -0.97516],
+       [-0.     , -1.14818, -0.86417, -0.30109],
+       [-0.     , -0.     , -0.64691, -0.45234],
+       [-0.     ,  0.     ,  0.     , -0.26191]])</code></pre>
+</div>
+</div>
+<div class="cell" data-scrolled="true" data-execution_count="130">
+<div class="sourceCode cell-code" id="cb48"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb48-1"><a href="#cb48-1" aria-hidden="true" tabindex="-1"></a>VH</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="130">
+<pre><code>[array([[ 0.96743],
+        [ 0.00445],
+        [ 0.2348 ],
+        [ 0.09447]]), array([[ 0.9206 ],
+        [-0.05637],
+        [ 0.38641]]), array([[ 0.99997],
+        [-0.00726]]), array([[ 1.]])]</code></pre>
+</div>
+</div>
+<div class="cell" data-execution_count="131">
+<div class="sourceCode cell-code" id="cb50"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb50-1"><a href="#cb50-1" aria-hidden="true" tabindex="-1"></a>np.allclose(R, RH)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="131">
+<pre><code>True</code></pre>
+</div>
+</div>
+<div class="cell" data-execution_count="132">
+<div class="sourceCode cell-code" id="cb52"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb52-1"><a href="#cb52-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> implicit_Qx(V,x):</span>
+<span id="cb52-2"><a href="#cb52-2" aria-hidden="true" tabindex="-1"></a>    n <span class="op">=</span> <span class="bu">len</span>(x)</span>
+<span id="cb52-3"><a href="#cb52-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> k <span class="kw">in</span> <span class="bu">range</span>(n<span class="op">-</span><span class="dv">1</span>,<span class="op">-</span><span class="dv">1</span>,<span class="op">-</span><span class="dv">1</span>):</span>
+<span id="cb52-4"><a href="#cb52-4" aria-hidden="true" tabindex="-1"></a>        x[k:n] <span class="op">-=</span> <span class="dv">2</span><span class="op">*</span>np.matmul(v[<span class="op">-</span>k], np.matmul(v[<span class="op">-</span>k], x[k:n]))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell" data-scrolled="true" data-execution_count="133">
+<div class="sourceCode cell-code" id="cb53"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb53-1"><a href="#cb53-1" aria-hidden="true" tabindex="-1"></a>A</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="133">
+<pre><code>array([[ 0.54348,  0.63791,  0.40114,  0.57728],
+       [ 0.00537,  0.80485,  0.68037,  0.0821 ],
+       [ 0.2832 ,  0.24164,  0.86556,  0.80986],
+       [ 0.11395,  0.96205,  0.76232,  0.56475]])</code></pre>
+</div>
+</div>
+<p>Both classical and modified Gram-Schmidt require <span class="math inline">\(2mn^2\)</span> flops.</p>
+</section>
+<section id="gotchas" class="level3">
+<h3 class="anchored" data-anchor-id="gotchas">Gotchas</h3>
+<p>Some things to be careful about: - when you’ve copied values vs.&nbsp;when you have two variables pointing to the same memory location - the difference between a vector of length n and a 1 x n matrix (np.matmul deals with them differently)</p>
+</section>
+</section>
+<section id="analogy" class="level2">
+<h2 class="anchored" data-anchor-id="analogy">Analogy</h2>
+<table class="table">
+<thead>
+<tr class="header">
+<th></th>
+<th><span class="math inline">\(A = QR\)</span></th>
+<th><span class="math inline">\(A = QHQ^*\)</span></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>orthogonal structuring</td>
+<td>Householder</td>
+<td>Householder</td>
+</tr>
+<tr class="even">
+<td>structured orthogonalization</td>
+<td>Gram-Schmidt</td>
+<td>Arnoldi</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Gram-Schmidt and Arnoldi</strong>: succession of triangular operations, can be stopped part way and first <span class="math inline">\(n\)</span> columns are correct</p>
+<p><strong>Householder</strong>: succession of orthogoal operations. Leads to more nearly orthogonal A in presence of rounding errors.</p>
+<p>Note that to compute a Hessenberg reduction <span class="math inline">\(A = QHQ^*\)</span>, Householder reflectors are applied to two sides of A, rather than just one.</p>
+</section>
+<section id="examples" class="level1">
+<h1>Examples</h1>
+<p>The following examples are taken from Lecture 9 of Trefethen and Bau, although translated from MATLAB into Python</p>
+<section id="ex-classical-vs-modified-gram-schmidt" class="level3">
+<h3 class="anchored" data-anchor-id="ex-classical-vs-modified-gram-schmidt">Ex: Classical vs Modified Gram-Schmidt</h3>
+<p>This example is experiment 2 from section 9 of Trefethen. We want to construct a square matrix A with random singular vectors and widely varying singular values spaced by factors of 2 between <span class="math inline">\(2^{-1}\)</span> and <span class="math inline">\(2^{-(n+1)}\)</span></p>
+<div class="cell" data-execution_count="68">
+<div class="sourceCode cell-code" id="cb55"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb55-1"><a href="#cb55-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
+<span id="cb55-2"><a href="#cb55-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> matplotlib <span class="im">import</span> rcParams</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell" data-execution_count="183">
+<div class="sourceCode cell-code" id="cb56"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb56-1"><a href="#cb56-1" aria-hidden="true" tabindex="-1"></a>n <span class="op">=</span> <span class="dv">100</span></span>
+<span id="cb56-2"><a href="#cb56-2" aria-hidden="true" tabindex="-1"></a>U, X <span class="op">=</span> np.linalg.qr(np.random.randn(n,n))   <span class="co"># set U to a random orthogonal matrix</span></span>
+<span id="cb56-3"><a href="#cb56-3" aria-hidden="true" tabindex="-1"></a>V, X <span class="op">=</span> np.linalg.qr(np.random.randn(n,n))   <span class="co"># set V to a random orthogonal matrix</span></span>
+<span id="cb56-4"><a href="#cb56-4" aria-hidden="true" tabindex="-1"></a>S <span class="op">=</span> np.diag(np.power(<span class="dv">2</span>,np.arange(<span class="op">-</span><span class="dv">1</span>,<span class="op">-</span>(n<span class="op">+</span><span class="dv">1</span>),<span class="op">-</span><span class="dv">1</span>), dtype<span class="op">=</span><span class="bu">float</span>))  <span class="co"># Set S to a diagonal matrix w/ exp </span></span>
+<span id="cb56-5"><a href="#cb56-5" aria-hidden="true" tabindex="-1"></a>                                                              <span class="co"># values between 2^-1 and 2^-(n+1)</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell" data-execution_count="184">
+<div class="sourceCode cell-code" id="cb57"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb57-1"><a href="#cb57-1" aria-hidden="true" tabindex="-1"></a>A <span class="op">=</span> np.matmul(U,np.matmul(S,V))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell" data-execution_count="188">
+<div class="sourceCode cell-code" id="cb58"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb58-1"><a href="#cb58-1" aria-hidden="true" tabindex="-1"></a>QC, RC <span class="op">=</span> cgs(A)</span>
+<span id="cb58-2"><a href="#cb58-2" aria-hidden="true" tabindex="-1"></a>QM, RM <span class="op">=</span> mgs(A)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell" data-execution_count="189">
+<div class="sourceCode cell-code" id="cb59"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb59-1"><a href="#cb59-1" aria-hidden="true" tabindex="-1"></a>plt.figure(figsize<span class="op">=</span>(<span class="dv">10</span>,<span class="dv">10</span>))</span>
+<span id="cb59-2"><a href="#cb59-2" aria-hidden="true" tabindex="-1"></a>plt.semilogy(np.diag(S), <span class="st">'r.'</span>, basey<span class="op">=</span><span class="dv">2</span>, label<span class="op">=</span><span class="st">"True Singular Values"</span>)</span>
+<span id="cb59-3"><a href="#cb59-3" aria-hidden="true" tabindex="-1"></a>plt.semilogy(np.diag(RM), <span class="st">'go'</span>, basey<span class="op">=</span><span class="dv">2</span>, label<span class="op">=</span><span class="st">"Modified Gram-Shmidt"</span>)</span>
+<span id="cb59-4"><a href="#cb59-4" aria-hidden="true" tabindex="-1"></a>plt.semilogy(np.diag(RC), <span class="st">'bx'</span>, basey<span class="op">=</span><span class="dv">2</span>, label<span class="op">=</span><span class="st">"Classic Gram-Shmidt"</span>)</span>
+<span id="cb59-5"><a href="#cb59-5" aria-hidden="true" tabindex="-1"></a>plt.legend()</span>
+<span id="cb59-6"><a href="#cb59-6" aria-hidden="true" tabindex="-1"></a>rcParams.update({<span class="st">'font.size'</span>: <span class="dv">18</span>})</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<p><img src="8.%20Implementing%20QR%20Factorization_files/figure-html/cell-41-output-1.png" class="img-fluid"></p>
+</div>
+</div>
+<div class="cell" data-execution_count="94">
+<div class="sourceCode cell-code" id="cb60"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb60-1"><a href="#cb60-1" aria-hidden="true" tabindex="-1"></a><span class="bu">type</span>(A[<span class="dv">0</span>,<span class="dv">0</span>]), <span class="bu">type</span>(RC[<span class="dv">0</span>,<span class="dv">0</span>]), <span class="bu">type</span>(S[<span class="dv">0</span>,<span class="dv">0</span>])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="94">
+<pre><code>(numpy.float64, numpy.float64, numpy.float64)</code></pre>
+</div>
+</div>
+<div class="cell" data-execution_count="92">
+<div class="sourceCode cell-code" id="cb62"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb62-1"><a href="#cb62-1" aria-hidden="true" tabindex="-1"></a>eps <span class="op">=</span> np.finfo(np.float64).eps<span class="op">;</span> eps</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="92">
+<pre><code>2.2204460492503131e-16</code></pre>
+</div>
+</div>
+<div class="cell" data-execution_count="93">
+<div class="sourceCode cell-code" id="cb64"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb64-1"><a href="#cb64-1" aria-hidden="true" tabindex="-1"></a>np.log2(eps), np.log2(np.sqrt(eps))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="93">
+<pre><code>(-52.0, -26.0)</code></pre>
+</div>
+</div>
+</section>
+<section id="ex-9.3-numerical-loss-of-orthogonality" class="level3">
+<h3 class="anchored" data-anchor-id="ex-9.3-numerical-loss-of-orthogonality">Ex 9.3: Numerical loss of orthogonality</h3>
+<p>This example is experiment 3 from section 9 of Trefethen.</p>
+<div class="cell" data-execution_count="95">
+<div class="sourceCode cell-code" id="cb66"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb66-1"><a href="#cb66-1" aria-hidden="true" tabindex="-1"></a>A <span class="op">=</span> np.array([[<span class="fl">0.70000</span>, <span class="fl">0.70711</span>], [<span class="fl">0.70001</span>, <span class="fl">0.70711</span>]])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Gram-Schmidt:</p>
+<div class="cell" data-execution_count="96">
+<div class="sourceCode cell-code" id="cb67"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb67-1"><a href="#cb67-1" aria-hidden="true" tabindex="-1"></a>Q1, R1 <span class="op">=</span> mgs(A)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Householder:</p>
+<div class="cell" data-execution_count="105">
+<div class="sourceCode cell-code" id="cb68"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb68-1"><a href="#cb68-1" aria-hidden="true" tabindex="-1"></a>R2, V, F <span class="op">=</span> householder_lots(A)</span>
+<span id="cb68-2"><a href="#cb68-2" aria-hidden="true" tabindex="-1"></a>Q2T <span class="op">=</span> np.matmul(block_diag(np.eye(<span class="dv">1</span>), F[<span class="dv">1</span>]), F[<span class="dv">0</span>])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Numpy’s Householder:</p>
+<div class="cell" data-execution_count="106">
+<div class="sourceCode cell-code" id="cb69"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb69-1"><a href="#cb69-1" aria-hidden="true" tabindex="-1"></a>Q3, R3 <span class="op">=</span> np.linalg.qr(A)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Check that all the QR factorizations work:</p>
+<div class="cell" data-execution_count="107">
+<div class="sourceCode cell-code" id="cb70"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb70-1"><a href="#cb70-1" aria-hidden="true" tabindex="-1"></a>np.matmul(Q1, R1)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="107">
+<pre><code>array([[ 0.7   ,  0.7071],
+       [ 0.7   ,  0.7071]])</code></pre>
+</div>
+</div>
+<div class="cell" data-execution_count="108">
+<div class="sourceCode cell-code" id="cb72"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb72-1"><a href="#cb72-1" aria-hidden="true" tabindex="-1"></a>np.matmul(Q2T.T, R2)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="108">
+<pre><code>array([[ 0.7   ,  0.7071],
+       [ 0.7   ,  0.7071]])</code></pre>
+</div>
+</div>
+<div class="cell" data-execution_count="109">
+<div class="sourceCode cell-code" id="cb74"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb74-1"><a href="#cb74-1" aria-hidden="true" tabindex="-1"></a>np.matmul(Q3, R3)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="109">
+<pre><code>array([[ 0.7   ,  0.7071],
+       [ 0.7   ,  0.7071]])</code></pre>
+</div>
+</div>
+<p>Check how close Q is to being perfectly orthonormal:</p>
+<div class="cell" data-execution_count="110">
+<div class="sourceCode cell-code" id="cb76"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb76-1"><a href="#cb76-1" aria-hidden="true" tabindex="-1"></a>np.linalg.norm(np.matmul(Q1.T, Q1) <span class="op">-</span> np.eye(<span class="dv">2</span>))  <span class="co"># Modified Gram-Schmidt</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="110">
+<pre><code>3.2547268868202263e-11</code></pre>
+</div>
+</div>
+<div class="cell" data-execution_count="111">
+<div class="sourceCode cell-code" id="cb78"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb78-1"><a href="#cb78-1" aria-hidden="true" tabindex="-1"></a>np.linalg.norm(np.matmul(Q2T.T, Q2T) <span class="op">-</span> np.eye(<span class="dv">2</span>))  <span class="co"># Our implementation of Householder</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="111">
+<pre><code>1.1110522984689321e-16</code></pre>
+</div>
+</div>
+<div class="cell" data-execution_count="112">
+<div class="sourceCode cell-code" id="cb80"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb80-1"><a href="#cb80-1" aria-hidden="true" tabindex="-1"></a>np.linalg.norm(np.matmul(Q3.T, Q3) <span class="op">-</span> np.eye(<span class="dv">2</span>))  <span class="co"># Numpy (which uses Householder)</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="112">
+<pre><code>2.5020189909116529e-16</code></pre>
+</div>
+</div>
+<p>GS (Q1) is less stable than Householder (Q2T, Q3)</p>
+</section>
+</section>
+<section id="end" class="level1">
+<h1>End</h1>
+
+
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const clipboard = new window.ClipboardJS('.code-copy-button', {
+    target: function(trigger) {
+      return trigger.previousElementSibling;
+    }
+  });
+  clipboard.on('success', function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    setTimeout(function() {
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  });
+  function tippyHover(el, contentFn) {
+    const config = {
+      allowHTML: true,
+      content: contentFn,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start'
+    };
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      return note.innerHTML;
+    });
+  }
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const cites = ref.parentNode.getAttribute('data-cites').split(' ');
+    tippyHover(ref, function() {
+      var popup = window.document.createElement('div');
+      cites.forEach(function(cite) {
+        var citeDiv = window.document.createElement('div');
+        citeDiv.classList.add('hanging-indent');
+        citeDiv.classList.add('csl-entry');
+        var biblioDiv = window.document.getElementById('ref-' + cite);
+        if (biblioDiv) {
+          citeDiv.innerHTML = biblioDiv.innerHTML;
+        }
+        popup.appendChild(citeDiv);
+      });
+      return popup.innerHTML;
+    });
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+</body></html>
